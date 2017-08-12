@@ -44,9 +44,11 @@ public class MainActivity extends AppCompatActivity {
     public static final String LOG_TAG = MainActivity.class.getSimpleName();
 
     /** URL to query the USGS dataset for earthquake information */
-    private static final String USGS_REQUEST_URL =
+    /*/private static final String USGS_REQUEST_URL =
             "https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime=2012-01-01&endtime=2012-12-01&minmagnitude=6";
-
+    */
+    private static final String USGS_REQUEST_URL =
+            "https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime=2014-01-01&endtime=2014-12-01&minmagnitude=7";
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -142,10 +144,10 @@ public class MainActivity extends AppCompatActivity {
             URL url = null;
             try {
                 url = new URL(stringUrl);
-            } catch (MalformedURLException exception) {
-                Log.e(LOG_TAG, "Error with creating URL", exception);
-                return null;
+            } catch (MalformedURLException e) {
+                e.printStackTrace();
             }
+
             return url;
         }
 
@@ -154,6 +156,11 @@ public class MainActivity extends AppCompatActivity {
          */
         private String makeHttpRequest(URL url) throws IOException {
             String jsonResponse = "";
+
+            if(url == null){
+                return jsonResponse;
+            }
+
             HttpURLConnection urlConnection = null;
             InputStream inputStream = null;
             try {
@@ -162,10 +169,18 @@ public class MainActivity extends AppCompatActivity {
                 urlConnection.setReadTimeout(10000 /* milliseconds */);
                 urlConnection.setConnectTimeout(15000 /* milliseconds */);
                 urlConnection.connect();
-                inputStream = urlConnection.getInputStream();
-                jsonResponse = readFromStream(inputStream);
+
+                /* check connect response code is 200 or request successfully*/
+                if (urlConnection.getResponseCode() == 200){
+                    inputStream = urlConnection.getInputStream();
+                    jsonResponse = readFromStream(inputStream);
+                }else {
+                    Log.e(LOG_TAG, "Error response code " + urlConnection.getResponseCode());
+                }
+
             } catch (IOException e) {
                 // TODO: Handle the exception
+                Log.e(LOG_TAG, "Problem resolving the earthquake JSON result.", e);
             } finally {
                 if (urlConnection != null) {
                     urlConnection.disconnect();
@@ -188,6 +203,8 @@ public class MainActivity extends AppCompatActivity {
                 InputStreamReader inputStreamReader = new InputStreamReader(inputStream, Charset.forName("UTF-8"));
                 BufferedReader reader = new BufferedReader(inputStreamReader);
                 String line = reader.readLine();
+
+
                 while (line != null) {
                     output.append(line);
                     line = reader.readLine();
